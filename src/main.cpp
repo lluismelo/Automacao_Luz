@@ -12,9 +12,17 @@
 const char* ssid = STASSID;
 const char* password = STAPSK;
 
+const int sensor = 13; // Conexão sensor no pino digital 13 do ESP
+const int pinLED = 2; // conexão do Led no pino 2 do ESP
+bool estadoled = 0; // variavel de controle 
+
 void setup() {
   // put your setup code here, to run once:
    
+  pinMode(sensor, INPUT); // Define o pino do sensor como ENTRADA do ESP
+  pinMode(pinLED, OUTPUT); // Define o pino do led como SAÍDA do ESP
+  digitalWrite(pinLED, LOW); //Inicializa com o LED desligado
+
   Serial.begin(115200);
   Serial.println("Booting");
   WiFi.mode(WIFI_STA);
@@ -80,4 +88,14 @@ void loop() {
 
   ArduinoOTA.handle();
 
+    if (digitalRead(sensor) == HIGH){ // Se o sensor foi tocado, leitura é HIGH
+    estadoled = !estadoled; // troca o estado da variável de controle
+    delay(100);
+    digitalWrite(pinLED, estadoled); // coloca o pino do LED no mesmo valor da variável de controle
+  }
+  else {
+    delay(100);
+    digitalWrite(pinLED, estadoled); // Alterna o estado do led
+  }
+  delay(100); 
 }
