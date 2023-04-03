@@ -12,11 +12,21 @@
 const char* ssid = STASSID;
 const char* password = STAPSK;
 
+// Definindo um IP fixo para o ESP, para facilitar as gravações via OTA.
+IPAddress local_IP(192,168,1,150);
+IPAddress gateway (192,168,1,1);
+IPAddress subnet(255, 255, 0, 0);
+
 void setup() {
   // put your setup code here, to run once:
    
   Serial.begin(115200);
   Serial.println("Booting");
+
+  if (!WiFi.config(local_IP, gateway, subnet)){
+    Serial.println("STA Failed to configure");
+  }
+
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   while (WiFi.waitForConnectResult() != WL_CONNECTED) {
