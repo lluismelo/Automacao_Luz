@@ -4,28 +4,51 @@
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 
-#ifndef STASSID
-#define STASSID "****"
-#define STAPSK "****"
+#include "SinricPro.h"
+#include "SinricProSwitch.h"
+
+#ifndef WIFI_SSID
+#define WIFI_SSID "redewifi"
+#define WIFI_PASS "senharedewifi"
 #endif
 
-const char* ssid = STASSID;
-const char* password = STAPSK;
+#define APP_KEY "de0bxxxx-1x3x-4x3x-ax2x-5dabxxxxxxxx"      // O seu App Key é algo como "de0bxxxx-1x3x-4x3x-ax2x-5dabxxxxxxxx"
+#define APP_SECRET "5f36xxxx-x3x7-4x3x-xexe-e86724a9xxxx-4c4axxxx-3x3x-x5xe-x9x3-333d65xxxxxx"   // O seu App Secret é algo como "5f36xxxx-x3x7-4x3x-xexe-e86724a9xxxx-4c4axxxx-3x3x-x5xe-x9x3-333d65xxxxxx"
+ 
+#define Quarto_ID       "5fb8b15232b3021cb51d0a02"    // Algo como "5dc1564130xxxxxxxxxxxxxx"
+#define Quarto_Pin 5  // O pino fisico onde está ligado
 
-// Definindo um IP fixo para o ESP, para facilitar as gravações via OTA.
-IPAddress local_IP(192,168,1,150);
-IPAddress gateway (192,168,1,1);
-IPAddress subnet(255, 255, 0, 0);
+#ifdef ENABLE_DEBUG
+   #define DEBUG_ESP_PORT Serial
+   #define NODEBUG_WEBSOCKETS
+   #define NDEBUG
+#endif 
+
+const char* ssid = WIFI_SSID;
+const char* password = WIFI_PASS;
+
+bool QuartoState(const String &deviceId, bool &state) {
+  Serial.printf("O Quarto foi %s\r\n", state?"on":"off");
+  digitalWrite(Quarto_Pin, state);
+  return true; // request handled properly
+}
+
+void setupSinricPro() {
+  // add devices and callbacks to SinricPro
+  SinricProSwitch& mySwitch1 = SinricPro[Quarto_ID];
+  mySwitch1.onPowerState(QuartoState);
+ 
+  // setup SinricPro
+  SinricPro.onConnected([](){ Serial.printf("Conectado a nuvem SinricPro\r\n"); }); 
+  SinricPro.onDisconnected([](){ Serial.printf("Desconectado a nuvem SinricPro\r\n"); });
+  SinricPro.begin(APP_KEY, APP_SECRET);
+}
 
 void setup() {
   // put your setup code here, to run once:
    
   Serial.begin(115200);
   Serial.println("Booting");
-
-  if (!WiFi.config(local_IP, gateway, subnet)){
-    Serial.println("STA Failed to configure");
-  }
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
@@ -83,11 +106,15 @@ void setup() {
   Serial.println("Ready");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
+
+  pinMode(Quarto_Pin, OUTPUT);
+  digitalWrite(Quarto_Pin, LOW);
+  setupSinricPro(); 
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
 
   ArduinoOTA.handle();
-
+  SinricPro.handle();
 }
