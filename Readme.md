@@ -12,3 +12,7 @@ Componentes:
 Infos:
 
 Para que seja possível fazer atualizações via OTA, é utilizada a biblioteca ArduinoOTA. No entando, ao adicionar a biblioteca pelo platformio, alguns parâmetros não eram identificados. Para resolver o problema, a biblioteca foi adicionada manualmente na pasta do projeto. A bibliote original está disponível no link: <https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA>
+
+Aparentemente existe uma incompatibilidade da integração Sinric Pro com a definição de IP fixo no ESP. 
+Se estiver definido um IP fixo, o ESP simplismente não consegue se conectar ao servidor do Sinric Pro. 
+Ainda não sei a causa. 
