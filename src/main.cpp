@@ -8,15 +8,16 @@
 #include "SinricProSwitch.h"
 
 #ifndef WIFI_SSID
-#define WIFI_SSID "redewifi"
-#define WIFI_PASS "senharedewifi"
+#define WIFI_SSID "***"
+#define WIFI_PASS "***"
 #endif
 
-#define APP_KEY "de0bxxxx-1x3x-4x3x-ax2x-5dabxxxxxxxx"      // O seu App Key é algo como "de0bxxxx-1x3x-4x3x-ax2x-5dabxxxxxxxx"
-#define APP_SECRET "5f36xxxx-x3x7-4x3x-xexe-e86724a9xxxx-4c4axxxx-3x3x-x5xe-x9x3-333d65xxxxxx"   // O seu App Secret é algo como "5f36xxxx-x3x7-4x3x-xexe-e86724a9xxxx-4c4axxxx-3x3x-x5xe-x9x3-333d65xxxxxx"
+#define APP_KEY "***"      // O seu App Key é algo como "de0bxxxx-1x3x-4x3x-ax2x-5dabxxxxxxxx"
+#define APP_SECRET "***"   // O seu App Secret é algo como "5f36xxxx-x3x7-4x3x-xexe-e86724a9xxxx-4c4axxxx-3x3x-x5xe-x9x3-333d65xxxxxx"
  
-#define Quarto_ID       "5fb8b15232b3021cb51d0a02"    // Algo como "5dc1564130xxxxxxxxxxxxxx"
+#define Quarto_ID "***"    // Algo como "5dc1564130xxxxxxxxxxxxxx"
 #define Quarto_Pin 5  // O pino fisico onde está ligado
+#define Sensor 15
 
 #ifdef ENABLE_DEBUG
    #define DEBUG_ESP_PORT Serial
@@ -27,10 +28,35 @@
 const char* ssid = WIFI_SSID;
 const char* password = WIFI_PASS;
 
+bool estatusLamp = false;
+unsigned long lastSensorTouch = 0;
+
 bool QuartoState(const String &deviceId, bool &state) {
-  Serial.printf("O Quarto foi %s\r\n", state?"on":"off");
-  digitalWrite(Quarto_Pin, state);
+  Serial.printf("O Quarto foi %s\r\n", state?"Ligado":"Desligado");
+  estatusLamp = state;
+  digitalWrite(Quarto_Pin, estatusLamp);
   return true; // request handled properly
+}
+
+void handleSensorTouch() {
+  unsigned long actualMillis = millis(); // get actual millis() and keep it in variable actualMillis
+  
+  if (digitalRead(Sensor) == HIGH  && actualMillis - lastSensorTouch > 1000)  {   
+    if (estatusLamp) {     // flip estatusLamp: if it was true, set it to false, vice versa
+      estatusLamp = false;
+    } else {
+      estatusLamp = true;
+    }
+    digitalWrite(Quarto_Pin, estatusLamp); // if estatusLamp indicates device turned on: turn on led (builtin led uses inverted logic: LOW = LED ON / HIGH = LED OFF)
+
+    // get Switch device back
+    SinricProSwitch& mySwitch = SinricPro[Quarto_ID];
+    // send powerstate event
+    mySwitch.sendPowerStateEvent(estatusLamp); // send the new powerState to SinricPro server
+    Serial.printf("Device %s turned %s (manually via flashbutton)\r\n", mySwitch.getDeviceId().c_str(), estatusLamp?"Ligado":"Desligado");
+
+    lastSensorTouch = actualMillis;  // update last button press variable
+  } 
 }
 
 void setupSinricPro() {
@@ -46,6 +72,10 @@ void setupSinricPro() {
 
 void setup() {
   // put your setup code here, to run once:
+  pinMode(Quarto_Pin, OUTPUT);
+  digitalWrite(Quarto_Pin, LOW);
+  pinMode(Sensor, INPUT);
+
    
   Serial.begin(115200);
   Serial.println("Booting");
@@ -107,8 +137,6 @@ void setup() {
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
 
-  pinMode(Quarto_Pin, OUTPUT);
-  digitalWrite(Quarto_Pin, LOW);
   setupSinricPro(); 
 }
 
@@ -116,5 +144,7 @@ void loop() {
   // put your main code here, to run repeatedly:
 
   ArduinoOTA.handle();
+
+  handleSensorTouch();
   SinricPro.handle();
 }
